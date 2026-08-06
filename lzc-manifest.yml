@@ -1,0 +1,125 @@
+application:
+  subdomain: adguardhome
+  background_task: true
+  upstreams:
+    - location: /
+      backend: http://adguardhome:3000/
+  ingress:
+    - protocol: tcp
+      port: 53
+      service: adguardhome
+      publish_port: "53"
+      description: "DNS over TCP"
+    - protocol: udp
+      port: 53
+      service: adguardhome
+      publish_port: "53"
+      description: "DNS over UDP"
+    - protocol: tcp
+      port: 853
+      service: adguardhome
+      publish_port: "853"
+      description: "DNS over TLS"
+    - protocol: udp
+      port: 853
+      service: adguardhome
+      publish_port: "853"
+      description: "DNS over QUIC"
+    - protocol: tcp
+      port: 5443
+      service: adguardhome
+      publish_port: "5443"
+      description: "DNSCrypt over TCP"
+    - protocol: udp
+      port: 5443
+      service: adguardhome
+      publish_port: "5443"
+      description: "DNSCrypt over UDP"
+    - protocol: tcp
+      port: 6060
+      service: adguardhome
+      publish_port: "6060"
+      description: "Debug pprof"
+  injects:
+    - id: capture-install-password
+      on: request
+      auth_required: false
+      when:
+        - /control/install/configure
+      do: |
+        const payload = ctx.body.getJSON();
+        if (!payload || typeof payload !== "object") return;
+        const user = typeof payload.username === "string" ? payload.username : "";
+        const password = typeof payload.password === "string" ? payload.password : "";
+        if (user) ctx.flow.set("adguard_pending_user", user);
+        if (password) ctx.flow.set("adguard_pending_password", password);
+    - id: commit-install-password
+      on: response
+      auth_required: false
+      when:
+        - /control/install/configure
+      do: |
+        if (ctx.status < 200 || ctx.status >= 300) return;
+        const user = ctx.flow.get("adguard_pending_user");
+        const password = ctx.flow.get("adguard_pending_password");
+        if (typeof user === "string" && user.length > 0) {
+          ctx.persist.set("adguard.username", user);
+        }
+        if (typeof password === "string" && password.length > 0) {
+          ctx.persist.set("adguard.password", password);
+        }
+    - id: capture-login-password
+      on: request
+      auth_required: false
+      when:
+        - /control/login
+      do: |
+        const payload = ctx.body.getJSON();
+        if (!payload || typeof payload !== "object") return;
+        const user = typeof payload.name === "string" ? payload.name : "";
+        const password = typeof payload.password === "string" ? payload.password : "";
+        if (user) ctx.flow.set("adguard_pending_user", user);
+        if (password) ctx.flow.set("adguard_pending_password", password);
+    - id: commit-login-password
+      on: response
+      auth_required: false
+      when:
+        - /control/login
+      do: |
+        if (ctx.status < 200 || ctx.status >= 300) return;
+        const user = ctx.flow.get("adguard_pending_user");
+        const password = ctx.flow.get("adguard_pending_password");
+        if (typeof user === "string" && user.length > 0) {
+          ctx.persist.set("adguard.username", user);
+        }
+        if (typeof password === "string" && password.length > 0) {
+          ctx.persist.set("adguard.password", password);
+        }
+    - id: login-autofill
+      when:
+        - /login.html
+        - /login.*
+      do:
+        - src: builtin://simple-inject-password
+          params:
+            user:
+              $persist: adguard.username
+            password:
+              $persist: adguard.password
+            userSelector: "input[name='username']"
+            passwordSelector: "input[name='password']"
+
+services:
+  adguardhome:
+    # upstream: adguard/adguardhome:v0.107.78
+    image: docker.1ms.run/adguard/adguardhome:v0.107.78
+    binds:
+      - /lzcapp/var/work:/opt/adguardhome/work
+      - /lzcapp/var/conf:/opt/adguardhome/conf
+
+usage: |
+  首次打开应用后，AdGuard Home 初始化向导中的 Web 管理监听端口请保持为 3000，否则 LazyCat 的应用入口将无法继续访问管理界面。
+
+  懒猫系统端口 53 可能已被系统 DNS 服务占用，本包不使用 host 网络。若需要给局域网设备提供普通 DNS 服务，请在 LazyCat 的端口转发或路由层确认 53/tcp 与 53/udp 可以分配给本应用；如果不能分配，优先使用 853/5443 等加密 DNS 入口或外部端口转发规则。
+
+  DHCP 67/68 依赖局域网广播能力，LPK 的 L4 ingress 不能等价替代 Docker host 网络，本包不声明 DHCP 服务端口。

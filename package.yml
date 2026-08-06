@@ -1,0 +1,18 @@
+package: community.lazycat.app.adguardhome
+version: 0.107.78
+name: AdGuard Home
+description: "Network-wide ads and trackers blocking DNS server"
+min_os_version: 1.5.0
+homepage: https://github.com/AdguardTeam/AdGuardHome
+author: AdguardTeam
+license: GPL-3.0
+locales:
+  zh:
+    name: "AdGuard Home"
+    description: "面向全网设备的广告与跟踪拦截 DNS 服务器"
+  en:
+    name: "AdGuard Home"
+    description: "Network-wide ads and trackers blocking DNS server"
+permissions:
+  required:
+    - net.internet
