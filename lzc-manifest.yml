@@ -3,15 +3,14 @@ application:
   background_task: true
   public_path:
     - /
-  # Disable LazyCat's injected readiness checks: AdGuard Home changes its Web
-  # listener between first-run setup and the persisted configuration.
+  # Disable LazyCat's injected readiness checks. AdGuard Home serves the
+  # first-run setup UI and persisted Web UI on the same configured listener.
   health_check:
     disable: true
   upstreams:
     - location: /
-      backend: http://adguardhome:80/
-      # AdGuard Home uses 3000 before setup unless overridden, and stores 80 after setup.
-      # Do not let LazyCat auto-generate a Web health check for either phase.
+      backend: http://adguardhome:3000/
+      # Do not let LazyCat auto-generate a Web health check for this UI port.
       disable_auto_health_checking: true
   ingress:
     - protocol: tcp
@@ -123,16 +122,16 @@ services:
     # upstream: adguard/adguardhome:v0.107.78
     image: docker.1ms.run/adguard/adguardhome:v0.107.78
     environment:
-      - ADGUARD_HOME_DEFAULT_WEB_PORT=80
+      - ADGUARD_HOME_DEFAULT_WEB_PORT=3000
     binds:
       - /lzcapp/var/work:/opt/adguardhome/work
       - /lzcapp/var/conf:/opt/adguardhome/conf
 
 usage: |
-  首次打开应用时，AdGuard Home 安装向导会默认使用 Web 管理端口 80。请保持该默认值，否则 LazyCat 的应用入口需要同步调整。
+  首次打开应用时，AdGuard Home 安装向导会默认使用 Web 管理端口 3000。请保持该默认值，否则 LazyCat 的应用入口需要同步调整。
 
   懒猫系统端口 53 可能已被系统 DNS 服务占用，本包不使用 host 网络。若需要给局域网设备提供普通 DNS 服务，请在 LazyCat 的端口转发或路由层确认 53/tcp 与 53/udp 可以分配给本应用；如果不能分配，优先使用 853/5443 等加密 DNS 入口或外部端口转发规则。
 
-  本包显式设置 application.health_check.disable: true 和 upstream.disable_auto_health_checking: true，禁用 LazyCat 自动生成的 Web 健康检查。AdGuard Home 首次安装前后可能涉及 3000 与 80 的监听状态切换，任何一个端口暂时不可用都不应阻止容器启动。
+  本包显式设置 application.health_check.disable: true 和 upstream.disable_auto_health_checking: true，禁用 LazyCat 自动生成的 Web 健康检查。AdGuard Home 首次设置和后续管理界面均使用 3000，初始化过程中的临时不可用不应阻止容器启动。
 
   DHCP 67/68 依赖局域网广播能力，LPK 的 L4 ingress 不能等价替代 Docker host 网络，本包不声明 DHCP 服务端口。
