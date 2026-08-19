@@ -116,17 +116,15 @@ application:
               $persist: adguard.password
             userSelector: "input[name='username']"
             passwordSelector: "input[name='password']"
-
 services:
   adguardhome:
-    # upstream: adguard/adguardhome:v0.107.78
-    image: docker.1ms.run/adguard/adguardhome:v0.107.78
+    # upstream: adguard/adguardhome:v0.107.79
+    image: docker.1ms.run/adguard/adguardhome:v0.107.79
     environment:
       - ADGUARD_HOME_DEFAULT_WEB_PORT=3000
     binds:
       - /lzcapp/var/work:/opt/adguardhome/work
       - /lzcapp/var/conf:/opt/adguardhome/conf
-
 usage: |
   首次打开应用时，AdGuard Home 安装向导会默认使用 Web 管理端口 3000。请保持该默认值，否则 LazyCat 的应用入口需要同步调整。
 
