@@ -1,5 +1,5 @@
 package: community.lazycat.app.adguardhome
-version: 0.107.79
+version: 0.107.80
 name: AdGuard Home
 description: "Network-wide ads and trackers blocking DNS server"
 min_os_version: 1.5.0

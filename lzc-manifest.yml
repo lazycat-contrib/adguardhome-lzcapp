@@ -118,8 +118,8 @@ application:
             passwordSelector: "input[name='password']"
 services:
   adguardhome:
-    # upstream: adguard/adguardhome:v0.107.79
-    image: docker.1ms.run/adguard/adguardhome:v0.107.79
+    # upstream: adguard/adguardhome:v0.107.80
+    image: docker.1ms.run/adguard/adguardhome:v0.107.80
     environment:
       - ADGUARD_HOME_DEFAULT_WEB_PORT=3000
     binds:
